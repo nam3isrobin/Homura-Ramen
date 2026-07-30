@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { useLenis } from './hooks/useLenis'
 import { useParallax } from './hooks/useParallax'
+import { Preloader } from './components/Preloader'
 import { Header } from './components/Header'
 import { Hero } from './components/Hero'
 import { FrameSequence } from './components/FrameSequence'
@@ -12,9 +14,11 @@ import { Footer } from './components/Footer'
 export default function App() {
   const lenis = useLenis()
   useParallax()
+  const [preloadedImages, setPreloadedImages] = useState<(HTMLImageElement | null)[] | undefined>()
 
   return (
     <>
+      <Preloader onComplete={setPreloadedImages} />
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-cream focus:px-4 focus:py-2 focus:text-ink"
@@ -26,7 +30,7 @@ export default function App() {
       <main id="main">
         <Hero lenis={lenis} />
         <Story />
-        <FrameSequence />
+        <FrameSequence preloadedImages={preloadedImages} />
         <MenuSection />
         <Visit />
         <Reserve />

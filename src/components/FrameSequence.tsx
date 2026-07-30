@@ -34,24 +34,27 @@ function findNearestLoadedImage(
   return null
 }
 
+type FrameSequenceProps = {
+  preloadedImages?: (HTMLImageElement | null)[]
+}
+
 /**
- * Apple-style scroll-scrubbed image sequence.
- * Mobile: captions stay as a slim bottom strip so the bowl stays visible.
+ * Native scroll-scrubbed image sequence.
+ * 100% native scroll scrubbing with direct HTML Canvas rendering — no Lenis or Motion dependencies.
  */
-export function FrameSequence() {
+export function FrameSequence({ preloadedImages }: FrameSequenceProps) {
   const reduced = useReducedMotion()
   const sectionRef = useRef<HTMLElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const imagesRef = useRef<(HTMLImageElement | null)[]>(
+  const fallbackImagesRef = useRef<(HTMLImageElement | null)[]>(
     Array.from({ length: FRAME_COUNT }, () => null),
   )
+  const imagesRef = preloadedImages ? { current: preloadedImages } : fallbackImagesRef
+
   const frameRef = useRef(0)
   const pendingDraw = useRef(false)
-  const [ready, setReady] = useState(false)
-  const [loadPct, setLoadPct] = useState(0)
   const [progress, setProgress] = useState(0)
   const [dims, setDims] = useState({ w: 0, h: 0 })
-
   const lastProgressRef = useRef(0)
 
   const drawFrame = useCallback((index: number) => {
@@ -79,7 +82,7 @@ export function FrameSequence() {
     ctx.fillStyle = '#0c0a09'
     ctx.fillRect(0, 0, w, h)
     drawCover(ctx, img, w, h, img.naturalWidth, img.naturalHeight)
-  }, [])
+  }, [imagesRef])
 
   const scheduleDraw = useCallback(
     (index: number) => {
@@ -94,7 +97,13 @@ export function FrameSequence() {
     [drawFrame],
   )
 
+  // Fallback loader if preloadedImages prop is not supplied
   useEffect(() => {
+    if (preloadedImages) {
+      scheduleDraw(0)
+      return
+    }
+
     let cancelled = false
     let loaded = 0
 
@@ -105,11 +114,9 @@ export function FrameSequence() {
         img.src = frameSrc(i)
         img.onload = () => {
           if (!cancelled) {
-            imagesRef.current[i] = img
+            fallbackImagesRef.current[i] = img
             loaded++
-            setLoadPct(Math.round((loaded / FRAME_COUNT) * 100))
             if (i === 0 || loaded === 12) {
-              setReady(true)
               scheduleDraw(0)
             }
           }
@@ -136,7 +143,7 @@ export function FrameSequence() {
     return () => {
       cancelled = true
     }
-  }, [scheduleDraw])
+  }, [preloadedImages, scheduleDraw])
 
   useEffect(() => {
     const onResize = () => {
@@ -148,6 +155,7 @@ export function FrameSequence() {
     return () => window.removeEventListener('resize', onResize)
   }, [scheduleDraw])
 
+  // Pure native scroll scrubbing
   useEffect(() => {
     let ticking = false
 
@@ -175,7 +183,6 @@ export function FrameSequence() {
         scheduleDraw(idx)
       }
 
-      // Throttle React state re-renders during high-frequency mobile touch scrolling
       if (Math.abs(p - lastProgressRef.current) > 0.008 || idx !== frameRef.current) {
         lastProgressRef.current = p
         setProgress(p)
@@ -224,20 +231,6 @@ export function FrameSequence() {
           }}
         />
 
-        {!ready && (
-          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-ink">
-            <p className="font-jp text-gold">{brand.jp}</p>
-            <div className="h-1 w-48 overflow-hidden rounded-full bg-white/10">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-fire to-gold transition-[width] duration-200"
-                style={{ width: `${loadPct}%` }}
-              />
-            </div>
-            <p className="text-xs tracking-widest text-stone uppercase">
-              Loading · {loadPct}%
-            </p>
-          </div>
-        )}
 
         {/* Top title — compact on mobile so pour stays dominant */}
         <div className="section-pad pointer-events-none absolute inset-x-0 top-0 z-10 pt-[max(5.5rem,env(safe-area-inset-top)+4.5rem)] sm:pt-28">
