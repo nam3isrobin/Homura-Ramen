@@ -46,16 +46,21 @@ export function FrameSequence({ preloadedImages }: FrameSequenceProps) {
   const reduced = useReducedMotion()
   const sectionRef = useRef<HTMLElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const fallbackImagesRef = useRef<(HTMLImageElement | null)[]>(
+  const imagesRef = useRef<(HTMLImageElement | null)[]>(
     Array.from({ length: FRAME_COUNT }, () => null),
   )
-  const imagesRef = preloadedImages ? { current: preloadedImages } : fallbackImagesRef
 
   const frameRef = useRef(0)
   const pendingDraw = useRef(false)
   const [progress, setProgress] = useState(0)
-  const [dims, setDims] = useState({ w: 0, h: 0 })
-  const lastProgressRef = useRef(0)
+
+  // Sync preloadedImages into stable imagesRef
+  useEffect(() => {
+    if (preloadedImages && preloadedImages.length > 0) {
+      imagesRef.current = preloadedImages
+      scheduleDraw(frameRef.current)
+    }
+  }, [preloadedImages])
 
   const drawFrame = useCallback((index: number) => {
     const canvas = canvasRef.current
@@ -67,7 +72,7 @@ export function FrameSequence({ preloadedImages }: FrameSequenceProps) {
     if (!img) return
 
     const isMobile = window.innerWidth < 768
-    const maxDpr = isMobile ? 1 : 2
+    const maxDpr = isMobile ? 1.25 : 2
     const dpr = Math.min(window.devicePixelRatio || 1, maxDpr)
 
     const w = canvas.clientWidth
@@ -82,7 +87,7 @@ export function FrameSequence({ preloadedImages }: FrameSequenceProps) {
     ctx.fillStyle = '#0c0a09'
     ctx.fillRect(0, 0, w, h)
     drawCover(ctx, img, w, h, img.naturalWidth, img.naturalHeight)
-  }, [imagesRef])
+  }, [])
 
   const scheduleDraw = useCallback(
     (index: number) => {
@@ -114,7 +119,7 @@ export function FrameSequence({ preloadedImages }: FrameSequenceProps) {
         img.src = frameSrc(i)
         img.onload = () => {
           if (!cancelled) {
-            fallbackImagesRef.current[i] = img
+            imagesRef.current[i] = img
             loaded++
             if (i === 0 || loaded === 12) {
               scheduleDraw(0)
@@ -145,16 +150,6 @@ export function FrameSequence({ preloadedImages }: FrameSequenceProps) {
     }
   }, [preloadedImages, scheduleDraw])
 
-  useEffect(() => {
-    const onResize = () => {
-      setDims({ w: window.innerWidth, h: window.innerHeight })
-      scheduleDraw(frameRef.current)
-    }
-    onResize()
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [scheduleDraw])
-
   // Pure native scroll scrubbing
   useEffect(() => {
     let ticking = false
@@ -179,14 +174,8 @@ export function FrameSequence({ preloadedImages }: FrameSequenceProps) {
         Math.max(0, Math.round(p * (FRAME_COUNT - 1))),
       )
 
-      if (idx !== frameRef.current) {
-        scheduleDraw(idx)
-      }
-
-      if (Math.abs(p - lastProgressRef.current) > 0.008 || idx !== frameRef.current) {
-        lastProgressRef.current = p
-        setProgress(p)
-      }
+      scheduleDraw(idx)
+      setProgress(p)
     }
 
     const onScroll = () => {
@@ -195,10 +184,14 @@ export function FrameSequence({ preloadedImages }: FrameSequenceProps) {
       requestAnimationFrame(updateScroll)
     }
 
-    onScroll()
+    updateScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [reduced, scheduleDraw, dims])
+    window.addEventListener('resize', updateScroll, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', updateScroll)
+    }
+  }, [reduced, scheduleDraw])
 
   const activeCaption =
     [...CAPTIONS].reverse().find((c) => progress >= c.at) ?? CAPTIONS[0]
