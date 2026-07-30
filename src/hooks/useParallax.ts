@@ -10,22 +10,30 @@ export function useParallax() {
   const reduced = useReducedMotion()
 
   useEffect(() => {
-    if (reduced) return
+    const isMobile =
+      typeof window !== 'undefined' &&
+      (window.innerWidth < 768 || 'ontouchstart' in window)
 
-    const nodes = () =>
-      Array.from(
-        document.querySelectorAll<HTMLElement>('[data-parallax]'),
-      )
+    if (reduced || isMobile) return
+
+    const elements = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-parallax]'),
+    ).map((el) => ({
+      el,
+      speed: Number(el.dataset.speed || '0.12'),
+    }))
+
+    if (elements.length === 0) return
 
     let ticking = false
 
     const update = () => {
       ticking = false
       const y = window.scrollY
-      for (const el of nodes()) {
-        const speed = Number(el.dataset.speed || '0.12')
-        const offset = y * speed * -0.12
-        el.style.transform = `translate3d(0, ${offset}px, 0)`
+      for (let i = 0; i < elements.length; i++) {
+        const item = elements[i]
+        const offset = y * item.speed * -0.12
+        item.el.style.transform = `translate3d(0, ${offset}px, 0)`
       }
     }
 

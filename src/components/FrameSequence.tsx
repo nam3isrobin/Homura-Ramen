@@ -52,6 +52,8 @@ export function FrameSequence() {
   const [progress, setProgress] = useState(0)
   const [dims, setDims] = useState({ w: 0, h: 0 })
 
+  const lastProgressRef = useRef(0)
+
   const drawFrame = useCallback((index: number) => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -61,7 +63,10 @@ export function FrameSequence() {
     const img = findNearestLoadedImage(imagesRef.current, index)
     if (!img) return
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2)
+    const isMobile = window.innerWidth < 768
+    const maxDpr = isMobile ? 1 : 2
+    const dpr = Math.min(window.devicePixelRatio || 1, maxDpr)
+
     const w = canvas.clientWidth
     const h = canvas.clientHeight
     const tw = Math.round(w * dpr)
@@ -144,7 +149,10 @@ export function FrameSequence() {
   }, [scheduleDraw])
 
   useEffect(() => {
-    const onScroll = () => {
+    let ticking = false
+
+    const updateScroll = () => {
+      ticking = false
       const section = sectionRef.current
       if (!section) return
       const rect = section.getBoundingClientRect()
@@ -152,7 +160,6 @@ export function FrameSequence() {
       if (total <= 0) return
       const scrolled = Math.min(Math.max(-rect.top, 0), total)
       const p = scrolled / total
-      setProgress(p)
 
       if (reduced) {
         scheduleDraw(Math.floor(FRAME_COUNT * 0.75))
@@ -163,7 +170,22 @@ export function FrameSequence() {
         FRAME_COUNT - 1,
         Math.max(0, Math.round(p * (FRAME_COUNT - 1))),
       )
-      if (idx !== frameRef.current) scheduleDraw(idx)
+
+      if (idx !== frameRef.current) {
+        scheduleDraw(idx)
+      }
+
+      // Throttle React state re-renders during high-frequency mobile touch scrolling
+      if (Math.abs(p - lastProgressRef.current) > 0.008 || idx !== frameRef.current) {
+        lastProgressRef.current = p
+        setProgress(p)
+      }
+    }
+
+    const onScroll = () => {
+      if (ticking) return
+      ticking = true
+      requestAnimationFrame(updateScroll)
     }
 
     onScroll()
