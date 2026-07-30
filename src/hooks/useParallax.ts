@@ -10,11 +10,7 @@ export function useParallax() {
   const reduced = useReducedMotion()
 
   useEffect(() => {
-    const isMobile =
-      typeof window !== 'undefined' &&
-      (window.innerWidth < 768 || 'ontouchstart' in window)
-
-    if (reduced || isMobile) return
+    if (reduced) return
 
     const elements = Array.from(
       document.querySelectorAll<HTMLElement>('[data-parallax]'),

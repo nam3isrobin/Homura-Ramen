@@ -7,12 +7,7 @@ export function useLenis() {
   const [lenis, setLenis] = useState<Lenis | null>(null)
 
   useEffect(() => {
-    // Mobile touch screens perform best with native 120Hz inertia scrolling
-    const isMobile =
-      typeof window !== 'undefined' &&
-      (window.innerWidth < 768 || 'ontouchstart' in window)
-
-    if (reduced || isMobile) {
+    if (reduced) {
       setLenis(null)
       return
     }
