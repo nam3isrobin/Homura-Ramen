@@ -110,38 +110,49 @@ export function Header({ lenis }: HeaderProps) {
 
       <AnimatePresence>
         {open && (
-          <motion.nav
-            id="mobile-nav"
-            initial={{ opacity: 0, y: -10, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.98 }}
-            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            className="header-glass header-glass-scrolled mx-auto mt-2 flex max-w-5xl flex-col gap-0.5 overflow-hidden rounded-3xl p-2 lg:hidden"
-            aria-label="Mobile"
-          >
-            {NAV.map((item, i) => (
-              <motion.button
-                key={item.id}
-                type="button"
-                initial={{ opacity: 0, x: -6 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.03 * i, duration: 0.25 }}
-                onClick={() => go(item.id)}
-                className="cursor-pointer rounded-2xl px-4 py-3.5 text-left text-[0.72rem] font-medium tracking-[0.18em] text-cream-muted uppercase transition-colors hover:bg-white/[0.04] hover:text-cream"
-              >
-                {item.label}
-              </motion.button>
-            ))}
-            <div className="px-2 pb-2 pt-1">
-              <button
-                type="button"
-                onClick={() => go('reserve')}
-                className="cta-premium w-full cursor-pointer rounded-full py-3"
-              >
-                Reserve a seat
-              </button>
-            </div>
-          </motion.nav>
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              onClick={() => setOpen(false)}
+              className="fixed inset-0 z-30 bg-ink/75 backdrop-blur-xl lg:hidden"
+              aria-hidden
+            />
+            <motion.nav
+              id="mobile-nav"
+              initial={{ opacity: 0, y: -10, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.98 }}
+              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              className="header-glass header-glass-scrolled relative z-40 mx-auto mt-2 flex max-w-5xl flex-col gap-0.5 overflow-hidden rounded-3xl p-2 lg:hidden"
+              aria-label="Mobile"
+            >
+              {NAV.map((item, i) => (
+                <motion.button
+                  key={item.id}
+                  type="button"
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.03 * i, duration: 0.25 }}
+                  onClick={() => go(item.id)}
+                  className="cursor-pointer rounded-2xl px-4 py-3.5 text-left text-[0.72rem] font-medium tracking-[0.18em] text-cream-muted uppercase transition-colors hover:bg-white/[0.04] hover:text-cream"
+                >
+                  {item.label}
+                </motion.button>
+              ))}
+              <div className="px-2 pb-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => go('reserve')}
+                  className="cta-premium w-full cursor-pointer rounded-full py-3"
+                >
+                  Reserve a seat
+                </button>
+              </div>
+            </motion.nav>
+          </>
         )}
       </AnimatePresence>
     </header>
